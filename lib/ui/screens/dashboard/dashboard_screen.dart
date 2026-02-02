@@ -29,23 +29,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Future<void> _fetchTransformers() async {
     final url = Uri.parse('${_apiService.baseUrl}/transformers');
     try {
+      print('Buscando transformadores em: $url'); 
       final response = await http.get(url);
+      
+      print('Status Code: ${response.statusCode}'); 
+      
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
+        print('Dados recebidos: $data'); 
+
         setState(() {
-          transformers = data.map((item) => Transformer(
-                id: item['id'],
-                status: item['status'],
-                latitude: item['latitude'],
-                longitude: item['longitude'],
-                capacity: item['capacity'],
-                address: item['address'],
-                lastMaintenance: item['last_maintenance'],
-                )).toList();
+          transformers = data.map((item) {
+            // CONVERSÃO SEGURA:
+            // 1. Garante que lat/long sejam double (converte string se necessário)
+            double lat = double.tryParse(item['latitude']?.toString() ?? '') ?? 0.0;
+            double long = double.tryParse(item['longitude']?.toString() ?? '') ?? 0.0;
+
+            return Transformer(
+              id: item['id']?.toString() ?? '',
+              status: item['status']?.toString() ?? 'offline',
+              latitude: lat,
+              longitude: long,
+              capacity: item['capacity']?.toString() ?? '',
+              address: item['address']?.toString() ?? '',
+              // Trata o nulo aqui usando 'N/A'
+              lastMaintenance: item['last_maintenance']?.toString() ?? 'N/A', 
+            );
+          }).toList();
         });
+        
+        print('Transformadores processados: ${transformers.length}');
+      } else {
+        print('Erro na API: ${response.body}');
       }
-    } catch (e) {
-      print(e);
+    } catch (e, stackTrace) {
+      print('Erro ao carregar transformadores: $e');
+      print(stackTrace);
     }
   }
 

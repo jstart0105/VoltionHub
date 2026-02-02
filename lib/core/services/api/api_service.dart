@@ -1,14 +1,13 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '/data/models/branch.dart';
-import '/data/models/employee.dart';
 import '/data/models/team.dart';
 import '/data/models/transformer_metric.dart';
 import '/data/models/user.dart';
 
 class ApiService {
   // final String baseUrl = 'http://172.16.1.216:3000';
-  final String baseUrl = 'http://192.168.100.51:3000';
+  final String baseUrl = 'http://192.168.100.171:3000';
 
   // --- User Methods ---
   Future<List<User>> getUsers() async {
@@ -20,6 +19,54 @@ class ApiService {
       throw Exception('Failed to load users');
     }
   }
+
+  Future<List<User>> getUsersForBranch(int branchId) async {
+    final response = await http.get(Uri.parse('$baseUrl/branches/$branchId/users'));
+    if (response.statusCode == 200) {
+      List<dynamic> data = json.decode(response.body);
+      return data.map((item) => User.fromJson(item)).toList();
+    } else {
+      throw Exception('Failed to load users for branch $branchId');
+    }
+  }
+
+  Future<User> updateUser(int id, {
+    String? name,
+    String? email,
+    String? role,
+    String? designation,
+    int? branchId,
+    int? teamId,
+  }) async {
+    final currentUserData = await http.get(Uri.parse('$baseUrl/users/$id'));
+    if (currentUserData.statusCode != 200) {
+       throw Exception('Failed to fetch user for update');
+    }
+    final userMap = json.decode(currentUserData.body);
+
+    final body = {
+      'name': name ?? userMap['name'],
+      'email': email ?? userMap['email'],
+      'role': role ?? userMap['role'],
+      'designation': designation ?? userMap['designation'],
+      'branch_id': branchId ?? userMap['branch_id'],
+      'team_id': teamId,
+    };
+    
+    body.removeWhere((key, value) => value == null && key != 'team_id');
+
+    final response = await http.put(
+      Uri.parse('$baseUrl/users/$id'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode(body),
+    );
+    if (response.statusCode == 200) {
+      return User.fromJson(json.decode(response.body));
+    } else {
+      throw Exception('Failed to update user');
+    }
+  }
+
 
   // --- Branch Methods ---
   Future<List<Branch>> getBranches() async {
@@ -48,11 +95,11 @@ class ApiService {
     }
   }
 
-  Future<Branch> addBranch(String name, String address, List<int> subAdminIds) async {
+  Future<Branch> addBranch(String name, String address) async {
     final response = await http.post(
       Uri.parse('$baseUrl/branches'),
       headers: {'Content-Type': 'application/json'},
-      body: json.encode({'name': name, 'address': address, 'sub_admin_ids': subAdminIds}),
+      body: json.encode({'name': name, 'address': address}),
     );
     if (response.statusCode == 201) {
       return Branch.fromJson(json.decode(response.body));
@@ -61,11 +108,11 @@ class ApiService {
     }
   }
 
-  Future<Branch> updateBranch(int id, String name, String address, List<int> subAdminIds) async {
+  Future<Branch> updateBranch(int id, String name, String address) async {
     final response = await http.put(
       Uri.parse('$baseUrl/branches/$id'),
       headers: {'Content-Type': 'application/json'},
-      body: json.encode({'name': name, 'address': address, 'sub_admin_ids': subAdminIds}),
+      body: json.encode({'name': name, 'address': address}),
     );
     if (response.statusCode == 200) {
       return Branch.fromJson(json.decode(response.body));
@@ -135,43 +182,9 @@ class ApiService {
     }
   }
 
-  // --- Employee Methods ---
-  Future<Employee> addEmployee(String name, String role, int teamId) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/employees'),
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode({'name': name, 'role': role, 'team_id': teamId}),
-    );
-      if (response.statusCode == 201) {
-      return Employee.fromJson(json.decode(response.body));
-    } else {
-      throw Exception('Failed to add employee');
-    }
-  }
-
-  Future<Employee> updateEmployee(int id, String name, String role, int teamId) async {
-    final response = await http.put(
-      Uri.parse('$baseUrl/employees/$id'),
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode({'name': name, 'role': role, 'team_id': teamId}),
-    );
-    if (response.statusCode == 200) {
-      return Employee.fromJson(json.decode(response.body));
-    } else {
-      throw Exception('Failed to update employee');
-    }
-  }
-
-  Future<void> deleteEmployee(int employeeId) async {
-    final response = await http.delete(Uri.parse('$baseUrl/employees/$employeeId'));
-    if (response.statusCode != 204) {
-      throw Exception('Failed to delete employee');
-    }
-  }
-
   // --- Transformers Methods ---
 
-  // --- START: Transformer Metrics Methods ---
+  // ----- Transformer Metrics Methods -----
 
   Future<List<TransformerMetric>> getTransformerMetrics(
     String transformerId, {
@@ -216,5 +229,5 @@ class ApiService {
     }
   }
 
-  // --- END: Transformer Metrics Methods ---
+  // ----- Transformer Metrics Methods -----
 }

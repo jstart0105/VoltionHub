@@ -3,6 +3,7 @@ import 'package:gap/gap.dart';
 import '/core/services/api/api_service.dart';
 import '/data/models/branch.dart';
 import '/data/models/team.dart';
+import '/data/models/user.dart'; // Adicionado
 
 class BranchDetailsScreen extends StatefulWidget {
   final Branch branch;
@@ -16,11 +17,13 @@ class BranchDetailsScreen extends StatefulWidget {
 class _BranchDetailsScreenState extends State<BranchDetailsScreen> {
   final ApiService _apiService = ApiService();
   late Future<List<Team>> _teamsFuture;
+  late Future<List<User>> _usersFuture; // Adicionado
 
   @override
   void initState() {
     super.initState();
     _teamsFuture = _apiService.getTeamsForBranch(widget.branch.id);
+    _usersFuture = _apiService.getUsersForBranch(widget.branch.id); // Adicionado
   }
 
   @override
@@ -37,12 +40,40 @@ class _BranchDetailsScreenState extends State<BranchDetailsScreen> {
               'Precisando de Manutenção', '${widget.branch.transformersNeedingMaintenance}'),
           const Gap(24),
 
-          _buildSectionTitle(context, 'Sub-Admins'),
-          ...widget.branch.subAdmins.map((admin) => ListTile(
-                leading: const Icon(Icons.person_outline),
-                title: Text(admin.name),
-                subtitle: Text(admin.email),
-              )),
+          _buildSectionTitle(context, 'Usuários da Filial'), // Alterado de Sub-Admins
+          // Substituído por um FutureBuilder
+          FutureBuilder<List<User>>(
+            future: _usersFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              } else if (snapshot.hasError) {
+                return Center(child: Text('Error: ${snapshot.error}'));
+              } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return const Center(child: Text('Nenhum usuário encontrado nesta filial.'));
+              }
+
+              final users = snapshot.data!;
+              return Column(
+                children: users.map((user) => Card(
+                  elevation: 2,
+                  margin: const EdgeInsets.only(bottom: 8.0),
+                  child: ListTile(
+                    leading: Icon(user.role == 'sub_admin' ? Icons.admin_panel_settings : Icons.person_outline),
+                    title: Text(user.name),
+                    subtitle: Text(user.designation ?? user.email), // Mostra o cargo ou o email
+                    trailing: Text(
+                      user.role == 'sub_admin' ? 'Sub-Admin' : (user.role ?? 'Funcionário'),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.tertiary,
+                        fontStyle: FontStyle.italic
+                      ),
+                    ),
+                  ),
+                )).toList(),
+              );
+            },
+          ),
           const Gap(24),
 
           _buildSectionTitle(context, 'Equipes'),
@@ -54,7 +85,7 @@ class _BranchDetailsScreenState extends State<BranchDetailsScreen> {
               } else if (snapshot.hasError) {
                 return Center(child: Text('Error: ${snapshot.error}'));
               } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                return const Center(child: Text('No teams found for this branch.'));
+                return const Center(child: Text('Nenhuma equipe encontrada nesta filial.'));
               }
 
               final teams = snapshot.data!;
@@ -65,7 +96,7 @@ class _BranchDetailsScreenState extends State<BranchDetailsScreen> {
                   child: ListTile(
                     leading: const Icon(Icons.group),
                     title: Text(team.name),
-                    subtitle: Text('${team.members.length} members'),
+                    subtitle: Text('${team.members.length} membros'), // Isto agora usa a lista de Users
                   ),
                 )).toList(),
               );

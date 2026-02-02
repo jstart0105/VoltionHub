@@ -1,12 +1,11 @@
-import 'employee.dart';
-import 'user.dart';
+import 'user.dart'; // Alterado de employee.dart para user.dart
 
 class Team {
   final int id;
   String name;
   final int branchId;
   final User? responsible;
-  List<Employee> members;
+  List<User> members; // Alterado de Employee para User
 
   Team({
     required this.id,
@@ -18,14 +17,15 @@ class Team {
 
   factory Team.fromJson(Map<String, dynamic> json) {
     var membersList = json['members'] as List? ?? [];
-    List<Employee> employeeMembers = membersList.map((i) => Employee.fromJson(i)).toList();
+    // Alterado de Employee para User
+    List<User> userMembers = membersList.map((i) => User.fromJson(i)).toList();
 
     return Team(
       id: json['id'],
       name: json['name'],
       branchId: json['branch_id'],
       responsible: json['responsible'] != null ? User.fromJson(json['responsible']) : null,
-      members: employeeMembers,
+      members: userMembers, // Alterado para userMembers
     );
   }
 
@@ -35,7 +35,8 @@ class Team {
       'name': name,
       'branch_id': branchId,
       'responsible_id': responsible?.id,
-      'members': members.map((e) => e.toJson()).toList(),
+      // Alterado para chamar toJson() em User
+      'members': members.map((u) => u.toJson()).toList(),
     };
   }
 }

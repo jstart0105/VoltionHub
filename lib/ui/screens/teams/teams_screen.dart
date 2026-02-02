@@ -56,7 +56,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
         padding: MediaQuery.of(context).viewInsets,
         child: TeamFormBottomSheet(
           team: team,
-          branchId: 1, // You might want to pass the actual branchId here
+          branchId: 1, // Você talvez queira buscar a branch do usuário logado
           apiService: _apiService,
           onSave: _loadTeams,
         ),
@@ -69,16 +69,17 @@ class _TeamsScreenState extends State<TeamsScreen> {
       await _apiService.deleteTeam(teamId);
       _loadTeams();
        ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Team deleted successfully!'), backgroundColor: Colors.green),
+        const SnackBar(content: Text('Equipe deletada com sucesso!'), backgroundColor: Colors.green),
       );
     } catch (e) {
        ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to delete team: $e'), backgroundColor: Colors.red),
+        SnackBar(content: Text('Falha ao deletar equipe: $e'), backgroundColor: Colors.red),
       );
     }
   }
 
   void _navigateToTeamDetails(Team team) async {
+    // A navegação agora espera um 'true' para recarregar
     final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
@@ -86,6 +87,8 @@ class _TeamsScreenState extends State<TeamsScreen> {
       ),
     );
 
+    // Se o TeamDetailsScreen retornar true (ex: após remover um membro),
+    // recarregamos a lista de equipes para atualizar a contagem de membros.
     if (result == true) {
       _loadTeams();
     }
@@ -126,7 +129,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
                   } else if (snapshot.hasError) {
                     return Center(child: Text('Error: ${snapshot.error}'));
                   } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return const Center(child: Text('No teams found.'));
+                    return const Center(child: Text('Nenhuma equipe encontrada.'));
                   }
 
                   return ListView.builder(
@@ -135,7 +138,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
                       final team = _filteredTeams[index];
                       return TeamCard(
                         team: team,
-                        onTap: () => _navigateToTeamDetails(team), // Add this
+                        onTap: () => _navigateToTeamDetails(team), // Atualizado
                         onEdit: () => _showTeamForm(team: team),
                         onDelete: () => _deleteTeam(team.id),
                       );

@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import '/data/models/employee.dart';
+import '/data/models/user.dart'; // Alterado de employee.dart
 
-class MemberCard extends StatelessWidget {
-  final Employee member;
-  final VoidCallback onEdit;
+class TeamMemberCard extends StatelessWidget {
+  final User member; // Alterado de Employee
+  // final VoidCallback onEdit; // Removido
   final VoidCallback onDelete;
 
-  const MemberCard({
+  const TeamMemberCard({
     super.key,
     required this.member,
-    required this.onEdit,
+    // required this.onEdit, // Removido
     required this.onDelete,
   });
 
@@ -20,16 +20,20 @@ class MemberCard extends StatelessWidget {
       child: ListTile(
         leading: const Icon(Icons.person),
         title: Text(member.name),
-        subtitle: Text(member.role),
+        // Atualizado para mostrar cargo (designation) ou role
+        subtitle: Text(member.designation ?? member.role ?? 'Cargo não definido'),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            /* Removido
             IconButton(
               icon: const Icon(Icons.edit),
               onPressed: onEdit,
             ),
+            */
             IconButton(
-              icon: const Icon(Icons.delete),
+              icon: const Icon(Icons.person_remove, color: Colors.redAccent),
+              tooltip: "Remover da equipe",
               onPressed: onDelete,
             ),
           ],
