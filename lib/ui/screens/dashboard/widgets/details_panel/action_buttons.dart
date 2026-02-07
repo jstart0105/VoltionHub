@@ -3,6 +3,7 @@ import 'package:gap/gap.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '/core/services/maps_service.dart';
 import '/data/models/transformer.dart';
+import '/ui/screens/analytics/analytics_screen.dart';
 import '/ui/screens/service_order/widgets/os_form_screen.dart';
 import '/ui/screens/transformer_history/transformer_history_screen.dart';
 import '/ui/widgets/button.dart';
@@ -52,6 +53,19 @@ class ActionButtons extends StatelessWidget {
               ),
             ),
           ],
+        ),
+        const Gap(12),
+        CustomButton(
+          text: 'Análise Gráfica & Métricas',
+          // Use uma cor diferente se quiser, ou style outline para diferenciar
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => AnalyticsScreen(transformer: transformer),
+              ),
+            );
+          },
         ),
       ],
     );

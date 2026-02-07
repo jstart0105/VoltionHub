@@ -6,6 +6,7 @@ class Transformer {
   final String capacity;
   final String address;
   final String lastMaintenance;
+  final String phaseType;
 
   Transformer({
     required this.id,
@@ -14,6 +15,7 @@ class Transformer {
     required this.longitude,
     required this.capacity,
     required this.address,
-    required this.lastMaintenance
+    required this.lastMaintenance,
+    required this.phaseType,
   });
 }

@@ -215,6 +215,25 @@ class ApiService {
     }
   }
 
+  Future<TransformerMetric?> getLatestMetric(String transformerId) async {
+    try {
+      // Usando o pacote http para manter a consistência com o resto do arquivo
+      final response = await http.get(
+        Uri.parse('$baseUrl/transformers/$transformerId/metrics/latest'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        // Como o servidor retorna apenas um objeto via LIMIT 1, fazemos o parse direto
+        return TransformerMetric.fromJson(data);
+      }
+      return null;
+    } catch (e) {
+      print('Erro ao buscar métrica mais recente: $e');
+      return null;
+    }
+  }
+
   Future<TransformerMetric> addMetric(TransformerMetric metric) async {
     final response = await http.post(
       Uri.parse('$baseUrl/metrics'),

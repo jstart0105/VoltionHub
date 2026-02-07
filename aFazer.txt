@@ -1,7 +1,6 @@
 Gerenciamento de usuários admin, sub-admins e usuários de campo.
 Configurações de perfil.
 Procurar locais e transformadores no mapa.
-Aproximar ao clicar em pontos do mapa.
 Unfocus no formulário e barras de pesquisa.
 Formulário com campos corrigidos para pegar dados existentes e pré-definidos.
 Edição e conclusão de OS.
@@ -9,14 +8,10 @@ Notificações.
 Dia/Hora de OS e de conclusão da OS.
 Responsável pela conclusão da OS.
 Opção de manutenção/desligamento agendado(a).
-Confirmar exclusão da OS.
 Rotas já setadas.
-Autenticação de login.
 Upload e crop de imagens.
 Edição de detalhes do equipamento(Manual e Automática).
 Validators implementados.
-Salvar último login e manter sessão ativa.
-Impressão digital para login.
 
 Animação de carregamento.
 Segurança e upload do servidor pra nuvem.

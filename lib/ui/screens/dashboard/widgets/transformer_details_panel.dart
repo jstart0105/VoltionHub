@@ -44,17 +44,12 @@ class _TransformerDetailsPanelState extends State<TransformerDetailsPanel> {
   @override
   void initState() {
     super.initState();
-    // Busca os dados imediatamente quando o widget é criado
     _fetchLatestMetric();
-    
-    // NOVO: Inicia o Timer para atualizar os dados periodicamente
     _startFetchingPeriodically();
   }
 
-  // NOVO: Método para iniciar o Timer
   void _startFetchingPeriodically() {
     _timer = Timer.periodic(const Duration(milliseconds: 4000), (timer) {
-      // Chama a função de busca de dados sem exibir o loading novamente
       _fetchLatestMetric(showLoading: false);
     });
   }
@@ -66,32 +61,31 @@ class _TransformerDetailsPanelState extends State<TransformerDetailsPanel> {
     super.dispose();
   }
 
-  // Função para buscar a métrica mais recente
-  // O parâmetro opcional 'showLoading' evita que o indicador de progresso apareça a cada atualização
   Future<void> _fetchLatestMetric({bool showLoading = true}) async {
     try {
       if (showLoading && mounted) {
           _metricState.value = MetricLoading();
       }
 
-      final metrics = await _apiService.getTransformerMetrics(widget.transformer.id);
-      
+      final metric = await _apiService.getLatestMetric(widget.transformer.id);
+            
       if (mounted) {
-        _metricState.value = MetricSuccess(metrics.isNotEmpty ? metrics.last : null);
+        _metricState.value = MetricSuccess(metric);
       }
     } catch (e) {
+      debugPrint("ERRO NA API: $e");
       if (mounted) {
-        _metricState.value = MetricError("Erro ao buscar dados.");
+        _metricState.value = MetricError("Erro ao buscar dados: $e");
       }
     }
   }
 
-  Color _getStatusColor(temperature) {
-    if (temperature == 'N/A') {
+  Color _getStatusColor(String temperatureStr) {
+    if (temperatureStr == 'N/A') {
       return Theme.of(context).colorScheme.onSurface;
     }
 
-    final temp = double.tryParse(temperature.replaceAll('°C', ''));
+    final temp = double.tryParse(temperatureStr.replaceAll('°C', ''));
     if (temp == null) {
       return Theme.of(context).colorScheme.onSurface;
     }
@@ -121,6 +115,7 @@ class _TransformerDetailsPanelState extends State<TransformerDetailsPanel> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Header
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -149,7 +144,7 @@ class _TransformerDetailsPanelState extends State<TransformerDetailsPanel> {
                           width: 12,
                           height: 12,
                           decoration: BoxDecoration(
-                            color: _getStatusColor(temperatureValue), // Passa a String
+                            color: _getStatusColor(temperatureValue),
                             shape: BoxShape.circle,
                           ),
                         );
@@ -164,6 +159,8 @@ class _TransformerDetailsPanelState extends State<TransformerDetailsPanel> {
               ],
             ),
             Divider(color: Theme.of(context).colorScheme.onSurface, height: 24),
+            
+            // Conteúdo
             ValueListenableBuilder<MetricState>(
               valueListenable: _metricState,
               builder: (context, state, _) {
@@ -182,7 +179,6 @@ class _TransformerDetailsPanelState extends State<TransformerDetailsPanel> {
                   return _buildMetrics(state.latestMetric);
                 }
                 
-                // Estado inicial ou inesperado
                 return Container(); 
               },
             ),
@@ -192,54 +188,41 @@ class _TransformerDetailsPanelState extends State<TransformerDetailsPanel> {
     );
   }
 
-  // Widget separado para construir a lista de métricas e detalhes
   Widget _buildMetrics(TransformerMetric? metric) {
+    // Temperatura (Geral)
     final double? temp = metric?.temperature;
-    final temperatureValue = temp != null
-        ? '${temp.toStringAsFixed(1)}°C'
-        : 'N/A';
+    final temperatureValue = temp != null ? '${temp.toStringAsFixed(1)}°C' : 'N/A';
 
-    final double? harmonicDistortion = metric?.harmonicDistortion;
-    final harmonicDistortionValue = harmonicDistortion != null
-        ? '${harmonicDistortion.toStringAsFixed(1)}%'
-        : 'N/A';
-
-    final double? current = metric?.current;
-    final currentValue = current != null
-        ? '${current.toStringAsFixed(1)}A'
-        : 'N/A';
-
-    final double? voltage = metric?.voltage;
-    final voltageValue = voltage != null
-        ? '${voltage.toStringAsFixed(1)}V'
-        : 'N/A';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Exibe temperatura primeiro pois é comum a todas as fases
         MetricTile(
           icon: Icons.thermostat_outlined,
           label: 'Temperatura',
           value: temperatureValue,
           valueColor: _getStatusColor(temperatureValue),
         ),
-        MetricTile(
-          icon: Icons.flash_on_outlined,
-          label: 'Tensão',
-          value: voltageValue,
-          valueColor: Theme.of(context).colorScheme.onSurface,
-        ),
-        MetricTile(
-          icon: Icons.power_outlined,
-          label: 'Corrente',
-          value: currentValue,
-          valueColor: Theme.of(context).colorScheme.onSurface,
-        ),
-        MetricTile(
-          icon: Icons.waves,
-          label: 'Distorção Harmônica',
-          value: harmonicDistortionValue,
-          valueColor: Theme.of(context).colorScheme.onSurface,
-        ),
+        const Gap(8),
+
+        // Lógica para exibir fases dinamicamente
+        // Se houver tensão ou corrente > 0 na fase, mostramos ela.
+        if (_shouldShowPhase(metric?.voltageA, metric?.currentA))
+           _buildPhaseSection('Fase A', metric?.voltageA, metric?.currentA, metric?.harmonicDistortionA),
+           
+        if (_shouldShowPhase(metric?.voltageB, metric?.currentB))
+           _buildPhaseSection('Fase B', metric?.voltageB, metric?.currentB, metric?.harmonicDistortionB),
+           
+        if (_shouldShowPhase(metric?.voltageC, metric?.currentC))
+           _buildPhaseSection('Fase C', metric?.voltageC, metric?.currentC, metric?.harmonicDistortionC),
+
+        // Caso não haja dados em nenhuma fase (ex: offline total), mostra aviso
+        if (!_anyPhaseActive(metric))
+           Padding(
+             padding: const EdgeInsets.symmetric(vertical: 8.0),
+             child: Text("Sem dados de fase disponíveis.", style: TextStyle(color: Theme.of(context).colorScheme.onSecondary)),
+           ),
+
         const Gap(8),
         ExpansionTile(
           title: Text(
@@ -257,7 +240,7 @@ class _TransformerDetailsPanelState extends State<TransformerDetailsPanel> {
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  "Capacidade: ${widget.transformer.capacity}\nEndereço: ${widget.transformer.address}\nÚltima Manutenção: ${widget.transformer.lastMaintenance}",
+                  "Tipo: ${widget.transformer.phaseType}\nCapacidade: ${widget.transformer.capacity}\nEndereço: ${widget.transformer.address}\nÚltima Manutenção: ${widget.transformer.lastMaintenance}",
                   style: GoogleFonts.inter(
                     color: Theme.of(context).colorScheme.onSecondary,
                     height: 1.5,
@@ -268,6 +251,54 @@ class _TransformerDetailsPanelState extends State<TransformerDetailsPanel> {
           ],
         ),
         ActionButtons(transformer: widget.transformer),
+      ],
+    );
+  }
+
+  // Verifica se deve exibir a fase (se tem dados válidos)
+  bool _shouldShowPhase(double? voltage, double? current) {
+    if (voltage != null && voltage > 0) return true;
+    if (current != null && current > 0) return true;
+    return false;
+  }
+
+  bool _anyPhaseActive(TransformerMetric? metric) {
+    return _shouldShowPhase(metric?.voltageA, metric?.currentA) ||
+           _shouldShowPhase(metric?.voltageB, metric?.currentB) ||
+           _shouldShowPhase(metric?.voltageC, metric?.currentC);
+  }
+
+  Widget _buildPhaseSection(String title, double? voltage, double? current, double? hd) {
+    final vVal = voltage != null ? '${voltage.toStringAsFixed(1)}V' : '0.0V';
+    final cVal = current != null ? '${current.toStringAsFixed(1)}A' : '0.0A';
+    final hVal = hd != null ? '${hd.toStringAsFixed(1)}%' : '0.0%';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0),
+          child: Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.orange)),
+        ),
+        MetricTile(
+          icon: Icons.flash_on_outlined,
+          label: 'Tensão',
+          value: vVal,
+          valueColor: Theme.of(context).colorScheme.onSurface,
+        ),
+        MetricTile(
+          icon: Icons.power_outlined,
+          label: 'Corrente',
+          value: cVal,
+          valueColor: Theme.of(context).colorScheme.onSurface,
+        ),
+        MetricTile(
+          icon: Icons.waves,
+          label: 'Distorção',
+          value: hVal,
+          valueColor: Theme.of(context).colorScheme.onSurface,
+        ),
+        const Divider(),
       ],
     );
   }

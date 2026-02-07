@@ -36,13 +36,14 @@ class _SummaryCardState extends State<SummaryCard> {
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         final allTransformers = data.map((item) => Transformer(
-          id: item['id'],
-          status: item['status'],
-          latitude: item['latitude'],
-          longitude: item['longitude'],
-          capacity: item['capacity'],
-          address: item['address'],
-          lastMaintenance: item['last_maintenance'],
+          id: item['id']?.toString() ?? '',
+          status: item['status']?.toString() ?? 'offline',
+          latitude: double.tryParse(item['latitude']?.toString() ?? '') ?? 0.0,
+          longitude: double.tryParse(item['longitude']?.toString() ?? '') ?? 0.0,
+          capacity: item['capacity']?.toString() ?? '',
+          address: item['address']?.toString() ?? '',
+          lastMaintenance: item['last_maintenance']?.toString() ?? '',
+          phaseType: item['phase_type']?.toString() ?? 'unidentified', // Novo campo
         )).toList();
 
         setState(() {

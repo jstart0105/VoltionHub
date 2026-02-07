@@ -2,43 +2,77 @@ class TransformerMetric {
   final DateTime time;
   final String transformerId;
   final double? temperature;
-  final double? voltage;
-  final double? current;
-  final double? harmonicDistortion;
+  
+  // Fase A
+  final double? voltageA;
+  final double? currentA;
+  final double? harmonicDistortionA;
+
+  // Fase B
+  final double? voltageB;
+  final double? currentB;
+  final double? harmonicDistortionB;
+
+  // Fase C
+  final double? voltageC;
+  final double? currentC;
+  final double? harmonicDistortionC;
 
   TransformerMetric({
     required this.time,
     required this.transformerId,
     this.temperature,
-    this.voltage,
-    this.current,
-    this.harmonicDistortion,
+    this.voltageA,
+    this.currentA,
+    this.harmonicDistortionA,
+    this.voltageB,
+    this.currentB,
+    this.harmonicDistortionB,
+    this.voltageC,
+    this.currentC,
+    this.harmonicDistortionC,
   });
 
-  // Construtor para criar uma instância a partir de um JSON
   factory TransformerMetric.fromJson(Map<String, dynamic> json) {
+    // Helper para converter valores numéricos com segurança
+    double? toDouble(dynamic val) {
+      if (val == null) return null;
+      return (val as num).toDouble();
+    }
+
     return TransformerMetric(
-      // Converte a string de data (formato ISO 8601) para um objeto DateTime
       time: DateTime.parse(json['time']),
-      transformerId: json['transformer_id'],
-      // Usa .toDouble() para garantir que os números sejam double, mesmo que venham como int
-      temperature: json['temperature']?.toDouble(),
-      voltage: json['voltage']?.toDouble(),
-      current: json['current']?.toDouble(),
-      harmonicDistortion: json['harmonic_distortion']?.toDouble(),
+      transformerId: json['transformer_id'].toString(),
+      temperature: toDouble(json['temperature']),
+      
+      voltageA: toDouble(json['voltage_a']),
+      currentA: toDouble(json['current_a']),
+      harmonicDistortionA: toDouble(json['harmonic_distortion_a']),
+      
+      voltageB: toDouble(json['voltage_b']),
+      currentB: toDouble(json['current_b']),
+      harmonicDistortionB: toDouble(json['harmonic_distortion_b']),
+      
+      voltageC: toDouble(json['voltage_c']),
+      currentC: toDouble(json['current_c']),
+      harmonicDistortionC: toDouble(json['harmonic_distortion_c']),
     );
   }
 
-  // Método para converter a instância para um JSON (útil para enviar dados via POST)
   Map<String, dynamic> toJson() {
     return {
-      // Converte o DateTime de volta para uma string no formato ISO 8601, que é o padrão
       'time': time.toIso8601String(),
       'transformer_id': transformerId,
       'temperature': temperature,
-      'voltage': voltage,
-      'current': current,
-      'harmonic_distortion': harmonicDistortion,
+      'voltage_a': voltageA,
+      'current_a': currentA,
+      'harmonic_distortion_a': harmonicDistortionA,
+      'voltage_b': voltageB,
+      'current_b': currentB,
+      'harmonic_distortion_b': harmonicDistortionB,
+      'voltage_c': voltageC,
+      'current_c': currentC,
+      'harmonic_distortion_c': harmonicDistortionC,
     };
   }
 }
