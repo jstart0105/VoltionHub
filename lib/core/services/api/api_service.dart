@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '/data/models/branch.dart';
 import '/data/models/team.dart';
 import '/data/models/transformer_metric.dart';
@@ -8,6 +9,28 @@ import '/data/models/user.dart';
 class ApiService {
   // final String baseUrl = 'http://172.16.1.216:3000';
   final String baseUrl = 'http://192.168.100.171:3000';
+
+  // --- Auth Methods ---
+  Future<User> login(String email, String? password) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/login'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({
+        'email': email,
+        'password': password,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      return User.fromJson(json.decode(response.body));
+    } else if (response.statusCode == 401) {
+      throw Exception('Usuário ou senha incorretos.');
+    } else if (response.statusCode == 404) {
+      throw Exception('Usuário não encontrado.');
+    } else {
+      throw Exception('Erro no servidor: ${response.statusCode}');
+    }
+  }
 
   // --- User Methods ---
   Future<List<User>> getUsers() async {
@@ -183,6 +206,28 @@ class ApiService {
   }
 
   // --- Transformers Methods ---
+
+  Future<List<dynamic>> getRawTransformers() async {
+    // Recupera o ID do usuário logado para enviar no header
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getInt('user_id');
+
+    final headers = <String, String>{};
+    if (userId != null) {
+      headers['x-user-id'] = userId.toString();
+    }
+
+    final response = await http.get(
+      Uri.parse('$baseUrl/transformers'),
+      headers: headers,
+    );
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      throw Exception('Failed to load transformers');
+    }
+  }
 
   // ----- Transformer Metrics Methods -----
 

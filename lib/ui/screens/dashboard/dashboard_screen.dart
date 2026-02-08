@@ -17,6 +17,7 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   List<Transformer> transformers = [];
+  bool isLoading = true; // Adicione esta variável para controlar o estado
 
   final ApiService _apiService = ApiService();
 
@@ -27,44 +28,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _fetchTransformers() async {
-    final url = Uri.parse('${_apiService.baseUrl}/transformers');
+    setState(() => isLoading = true); // Inicia loading
     try {
-      print('Buscando transformadores em: $url'); 
-      final response = await http.get(url);
+      final List<dynamic> data = await _apiService.getRawTransformers();
       
-      print('Status Code: ${response.statusCode}'); 
+      setState(() {
+        transformers = data.map<Transformer>((item) {
+          double lat = double.tryParse(item['latitude']?.toString() ?? '') ?? 0.0;
+          double long = double.tryParse(item['longitude']?.toString() ?? '') ?? 0.0;
+
+          return Transformer(
+            id: item['id']?.toString() ?? '',
+            status: item['status']?.toString() ?? 'offline',
+            latitude: lat,
+            longitude: long,
+            capacity: item['capacity']?.toString() ?? '',
+            address: item['address']?.toString() ?? '',
+            lastMaintenance: item['last_maintenance']?.toString() ?? 'N/A',
+            phaseType: item['phase_type']?.toString() ?? 'monophasic', 
+          );
+        }).toList();
+        isLoading = false; // Finaliza loading
+      });
       
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        print('Dados recebidos: $data'); 
-
-        setState(() {
-          transformers = data.map((item) {
-            // CONVERSÃO SEGURA:
-            // 1. Garante que lat/long sejam double (converte string se necessário)
-            double lat = double.tryParse(item['latitude']?.toString() ?? '') ?? 0.0;
-            double long = double.tryParse(item['longitude']?.toString() ?? '') ?? 0.0;
-
-            return Transformer(
-              id: item['id']?.toString() ?? '',
-              status: item['status']?.toString() ?? 'offline',
-              latitude: lat,
-              longitude: long,
-              capacity: item['capacity']?.toString() ?? '',
-              address: item['address']?.toString() ?? '',
-              // Trata o nulo aqui usando 'N/A'
-              lastMaintenance: item['last_maintenance']?.toString() ?? 'N/A', 
-            );
-          }).toList();
-        });
-        
-        print('Transformadores processados: ${transformers.length}');
-      } else {
-        print('Erro na API: ${response.body}');
-      }
     } catch (e, stackTrace) {
       print('Erro ao carregar transformadores: $e');
       print(stackTrace);
+      setState(() => isLoading = false);
     }
   }
 
@@ -92,7 +82,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
             transformers: transformers,
             onMarkerTapped: _onMarkerTapped,
           ),
-          const SummaryCard(),
+          SummaryCard(
+            transformers: transformers,
+            isLoading: isLoading,
+          ),
         ],
       ),
     );
